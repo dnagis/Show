@@ -14,16 +14,24 @@ opencellid: 789443d4-f4be-4eee-a929-b88587f272ca (mail amu.fr code bassu)
 
 merge de deux fichiers.db: en bash:
 sqlite3 fichier_a_inserer.db .dump | sqlite3 fichier_destination_finale.db
+du coup:
+cp cells.db cellid_merged
+sqlite3 cellid_phone.db .dump | sqlite3 cellid_merged.db
 
-puis inner join de deux db pour avoir lat et long
-[INSERT INTO Points (lat, long)] #au cas où tu veuilles remplir une nouvelle table, simplement à ajouter au début
-select one.*, two.lat, two.lon
-from cellid as one
-join cells as two
-on (one.CELLID = two.cell and one.MNC = two.net and one.RADIO = two.radio and one.LAC = two.area)
-order by id;
+Alléger la bdd cells:
+DELETE FROM cells WHERE area NOT IN (SELECT DISTINCT(LAC) FROM cellid);
+
+puis inner join de deux tables (cells = opencellid ; cellid = phone) pour avoir lat et long
+CREATE TABLE Points(Id INTEGER PRIMARY KEY, lat REAL, lon REAL);
+INSERT INTO Points (lat, lon)
+SELECT cast(two.lat as REAL), cast(two.lon as REAL)
+FROM cellid as one
+JOIN cells as two
+ON (one.CELLID = two.cell and one.MNC = two.net and one.RADIO = two.radio and one.LAC = two.area)
+ORDER BY id;
 
 
+**********************************************COMPIL SPATIALITE*********************************************
 *****libspatialite 4.4.0_RC1:
 -prerequisites:
 	-proj.4
@@ -44,15 +52,21 @@ libspatialite 4.4.0_RC1:
 spatialite-tools-4.4.0-RC1 ./configure --prefix=/usr --libdir=/usr/lib64 --disable-freexl --disable-readosm
 	plante dans shp_sanitize car undef ref à gaiaMakeValid et gaiaMakeValidDiscarded qui devraient être dans /usr/lib64/libspatialite.so
 	https://git.osgeo.org/gogs/rttopo/librttopo --->>> plus tôt peut être? car gg_rttopo.c y fait appel dans libspatialite/src/gaiageo/
-	readosm au passage: https://www.gaia-gis.it/fossil/readosm/index
-	
-runtime spatialite: table = Points colonne = Geometry 	
+	readosm au passage: https://www.gaia-gis.it/fossil/readosm/index	
+
+**********************************************COMPIL SPATIALITE*********************************************
+
+runtime spatialite: 
+SELECT InitSpatialMetaData(); # Attention reduire la db avant sinon archi long
+
+table = Points colonne = Geometry 	
 SELECT DISTINCT Srid(Geometry) FROM Points; -> -1 = unset
 UPDATE geometry_columns SET srid=4326;
 UPDATE Points SET Geometry = SetSRID(Geometry, 4326); (tu peux pas le faire avant geometry_columns sinon Error: Points.Geometry violates Geometry constraint [geom-type or SRID not allowed]
 	avec ça .dropkml fonctionne, mais pas geojson
-	
-INSERT INTO Points (lat, long) 
+
+***********************************************GARDE AU CAS OU**********************************************	
+INSERT INTO Points (lat, lon) # 
 select one.*, two.lat, two.lon
 from cellid as one
 join cells as two
