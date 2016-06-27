@@ -15,7 +15,7 @@ opencellid: 789443d4-f4be-4eee-a929-b88587f272ca (mail amu.fr code bassu)
 merge de deux fichiers.db: en bash:
 sqlite3 fichier_a_inserer.db .dump | sqlite3 fichier_destination_finale.db
 du coup:
-cp cells.db cellid_merged
+cp cells.db cellid_merged.db
 sqlite3 cellid_phone.db .dump | sqlite3 cellid_merged.db
 
 Alléger la bdd cells:
