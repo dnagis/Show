@@ -21,6 +21,7 @@ sqlite3 cellid_phone.db .dump | sqlite3 cellid_merged.db
 Alléger la bdd cellid, table cells:
 DELETE FROM cells WHERE mcc NOT IN (208);
 DELETE FROM cells WHERE area NOT IN (SELECT DISTINCT(LAC) FROM cellid);
+vacuum;
 
 puis inner join de deux tables (cells = opencellid ; cellid = phone) pour avoir lat et long
 CREATE TABLE Points(Id INTEGER PRIMARY KEY, lat REAL, lon REAL);
