@@ -44,17 +44,12 @@ ORDER BY id;
 Select AddGeometryColumn ('Points', 'Geometry', 4326, 'POINT', 2);
 UPDATE geometry_columns SET srid=4326;
 UPDATE Points SET Geometry = SetSRID(Geometry, 4326); (tu peux pas le faire avant geometry_columns sinon Error: Points.Geometry violates Geometry constraint [geom-type or SRID not allowed]
+UPDATE Points SET Geometry=MakePoint(cast(lon as REAL), cast(lat as REAL),  4326);
+select ASTEXT(Geometry) from Points; # pour vérifier si Geometry bien remplie
 
-
-
-
-
-
-
-
-.dumpkml Points Geometry /root/vincent.kml -> mince, fonctionne plus...
+.dumpkml Points Geometry /root/vincent.kml #fonctionne, mais pas geojson
 	
-	avec ça .dumpkml fonctionne, mais pas geojson
+
 	
 
 
