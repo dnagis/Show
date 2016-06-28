@@ -1,27 +1,33 @@
+* API Key OpenCellID: 789443d4-f4be-4eee-a929-b88587f272ca (mail amu.fr code bassu)	
+
 Export de la db sqlite avec adb:
 
 adb backup -f data.ab -noapk dnagis.cellidtrack
 dd if=data.ab bs=1 skip=24 | openssl zlib -d | tar -xvf -
 
+cp apps/dnagis.cellidtrack/db/cellid.db /initrd/mnt/dev_save/packages/geo/data/cellid_phone.db
 
-* convertir epoch avec busybox date: date -d @1464159452 ##enlever les 3 lasts (ms)
+tar -xf /initrd/mnt/dev_save/packages/geo/spatialite.tar.xz -C /
 
-*********************************SQLite****************************************
-API Key OpenCellID
-opencellid: 789443d4-f4be-4eee-a929-b88587f272ca (mail amu.fr code bassu)
+***Il faut initialiser une db géographique spatialite vide, dès qu'il y a qq chose dedans c'est l'horreur ça prend trois plombes...
+spatialite cellid_merged.db
+SELECT InitSpatialMetaData();
 
-
-
-merge de deux fichiers.db: en bash:
-sqlite3 fichier_a_inserer.db .dump | sqlite3 fichier_destination_finale.db
-du coup:
-cp cells.db cellid_merged.db	ou		cp cells_MCC208.db cellid_merged.db
-sqlite3 cellid_phone.db .dump | sqlite3 cellid_merged.db
-
-Alléger la bdd cellid, table cells:
+***Alléger la bdd cellid, table cells:
 DELETE FROM cells WHERE mcc NOT IN (208);
 DELETE FROM cells WHERE area NOT IN (SELECT DISTINCT(LAC) FROM cellid);
 vacuum;
+
+
+***merge de deux fichiers.db: en bash:
+***sqlite3 fichier_a_inserer.db .dump | sqlite3 fichier_destination_finale.db
+***du coup:
+sqlite3 cellid_phone.db .dump | sqlite3 cellid_merged.db
+sqlite3 cells.db .dump | sqlite3 cellid_merged.db
+
+
+spatialite cellid_merged.db
+drop table android_metadata
 
 puis inner join de deux tables (cells = opencellid ; cellid = phone) pour avoir lat et long
 CREATE TABLE Points(Id INTEGER PRIMARY KEY, lat REAL, lon REAL);
@@ -31,6 +37,10 @@ FROM cellid as one
 JOIN cells as two
 ON (one.CELLID = two.cell and one.MNC = two.net and one.RADIO = two.radio and one.LAC = two.area)
 ORDER BY id;
+
+
+
+
 
 
 **********************************************COMPIL SPATIALITE*********************************************
@@ -59,13 +69,17 @@ spatialite-tools-4.4.0-RC1 ./configure --prefix=/usr --libdir=/usr/lib64 --disab
 **********************************************COMPIL SPATIALITE*********************************************
 
 runtime spatialite: 
-SELECT InitSpatialMetaData(); # Attention reduire la db avant sinon archi long
+SELECT InitSpatialMetaData();
 
 table = Points colonne = Geometry 	
 SELECT DISTINCT Srid(Geometry) FROM Points; -> -1 = unset
 UPDATE geometry_columns SET srid=4326;
 UPDATE Points SET Geometry = SetSRID(Geometry, 4326); (tu peux pas le faire avant geometry_columns sinon Error: Points.Geometry violates Geometry constraint [geom-type or SRID not allowed]
 	avec ça .dropkml fonctionne, mais pas geojson
+	
+	
+
+
 
 ***********************************************GARDE AU CAS OU**********************************************	
 INSERT INTO Points (lat, lon) # 
@@ -79,6 +93,11 @@ Select AddGeometryColumn ('Points', 'Geometry', 4326, 'POINT', 2);
 UPDATE geometry_columns SET srid=4326;
 
 UPDATE Points SET Geometry=MakePoint(cast(long as REAL), cast(lat as REAL),  4326);
+
+* convertir epoch avec busybox date: date -d @1464159452 ##enlever les 3 lasts (ms)
+
+
+
 
 
 
