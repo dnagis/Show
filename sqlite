@@ -39,6 +39,25 @@ ON (one.CELLID = two.cell and one.MNC = two.net and one.RADIO = two.radio and on
 ORDER BY id;
 
 
+***table = Points colonne = Geometry 	
+***SELECT DISTINCT Srid(Geometry) FROM Points; -> -1 = unset
+Select AddGeometryColumn ('Points', 'Geometry', 4326, 'POINT', 2);
+UPDATE geometry_columns SET srid=4326;
+UPDATE Points SET Geometry = SetSRID(Geometry, 4326); (tu peux pas le faire avant geometry_columns sinon Error: Points.Geometry violates Geometry constraint [geom-type or SRID not allowed]
+
+
+
+
+
+
+
+
+.dumpkml Points Geometry /root/vincent.kml -> mince, fonctionne plus...
+	
+	avec ça .dumpkml fonctionne, mais pas geojson
+	
+
+
 
 
 
@@ -68,20 +87,18 @@ spatialite-tools-4.4.0-RC1 ./configure --prefix=/usr --libdir=/usr/lib64 --disab
 
 **********************************************COMPIL SPATIALITE*********************************************
 
-runtime spatialite: 
-SELECT InitSpatialMetaData();
 
-table = Points colonne = Geometry 	
-SELECT DISTINCT Srid(Geometry) FROM Points; -> -1 = unset
-UPDATE geometry_columns SET srid=4326;
-UPDATE Points SET Geometry = SetSRID(Geometry, 4326); (tu peux pas le faire avant geometry_columns sinon Error: Points.Geometry violates Geometry constraint [geom-type or SRID not allowed]
-	avec ça .dropkml fonctionne, mais pas geojson
-	
+
+
 	
 
 
 
 ***********************************************GARDE AU CAS OU**********************************************	
+***runtime spatialite: 
+SELECT InitSpatialMetaData();
+
+
 INSERT INTO Points (lat, lon) # 
 select one.*, two.lat, two.lon
 from cellid as one
@@ -91,7 +108,6 @@ order by id;
 
 Select AddGeometryColumn ('Points', 'Geometry', 4326, 'POINT', 2);
 UPDATE geometry_columns SET srid=4326;
-
 UPDATE Points SET Geometry=MakePoint(cast(long as REAL), cast(lat as REAL),  4326);
 
 * convertir epoch avec busybox date: date -d @1464159452 ##enlever les 3 lasts (ms)
