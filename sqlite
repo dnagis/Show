@@ -11,7 +11,7 @@ tar -xf /initrd/mnt/dev_save/packages/geo/spatialite.tar.xz -C /
 
 ***Il faut initialiser une db géographique spatialite vide, dès qu'il y a qq chose dedans c'est l'horreur ça prend trois plombes...
 spatialite cellid_merged.db
-SELECT InitSpatialMetaData();
+SELECT InitSpatialMetaData(); #message d'erreur table existe déjà, n'à pas l'air bien grave...
 
 ***Alléger la bdd cellid, table cells:
 DELETE FROM cells WHERE mcc NOT IN (208);
