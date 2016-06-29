@@ -49,7 +49,9 @@ select ASTEXT(Geometry) from Points; # pour vérifier si Geometry bien remplie
 
 .dumpkml Points Geometry /root/vincent.kml #fonctionne, mais pas geojson
 	
+.dumpgeojson Points Geometry /root/vincent.json -> il faut que ça fonctionne!!!
 
+après http://umap.openstreetmap.fr/ en important du geojson
 	
 
 
