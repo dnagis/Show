@@ -7,12 +7,6 @@ dd if=data.ab bs=1 skip=24 | openssl zlib -d | tar -xvf -
 
 cp apps/dnagis.cellidtrack/db/cellid.db /initrd/mnt/dev_save/packages/geo/data/cellid_phone.db
 
-tar -xf /initrd/mnt/dev_save/packages/geo/spatialite.tar.xz -C /
-
-***Il faut initialiser une db géographique spatialite vide, dès qu'il y a qq chose dedans c'est l'horreur ça prend trois plombes...
-spatialite cellid_merged.db
-SELECT InitSpatialMetaData(); #message d'erreur table existe déjà, n'à pas l'air bien grave...
-
 ***Alléger la bdd cellid, table cells:
 DELETE FROM cells WHERE mcc NOT IN (208);
 DELETE FROM cells WHERE area NOT IN (SELECT DISTINCT(LAC) FROM cellid);
@@ -26,18 +20,34 @@ sqlite3 cellid_phone.db .dump | sqlite3 cellid_merged.db
 sqlite3 cells.db .dump | sqlite3 cellid_merged.db
 
 
-spatialite cellid_merged.db
-drop table android_metadata
+***puis inner join de deux tables (cells = opencellid ; cellid = phone) pour avoir lat et long
+CREATE TABLE Points(Id INTEGER PRIMARY KEY, lat REAL, lon REAL, time TEXT);
 
-puis inner join de deux tables (cells = opencellid ; cellid = phone) pour avoir lat et long
-CREATE TABLE Points(Id INTEGER PRIMARY KEY, lat REAL, lon REAL);
-INSERT INTO Points (lat, lon)
-SELECT cast(two.lat as REAL), cast(two.lon as REAL)
+INSERT INTO Points (lat, lon, time)
+SELECT cast(two.lat as REAL), cast(two.lon as REAL), datetime(TIME/1000,'unixepoch','localtime') 
 FROM cellid as one
 JOIN cells as two
 ON (one.CELLID = two.cell and one.MNC = two.net and one.RADIO = two.radio and one.LAC = two.area)
 ORDER BY id;
 
+.separator ;
+.headers on
+.output /root/foobar.csv
+SELECT * from Points where Id > 300;
+
+http://umap.openstreetmap.fr/fr/ -> Créer une carte, choisir le csv, il affiche même l'heure...
+
+
+
+*************************************************SPATIALITE*************************************************
+tar -xf /initrd/mnt/dev_save/packages/geo/spatialite.tar.xz -C /
+
+***Il faut initialiser une db géographique spatialite vide, dès qu'il y a qq chose dedans c'est l'horreur ça prend trois plombes...
+spatialite cellid_merged.db
+SELECT InitSpatialMetaData(); #message d'erreur table existe déjà, n'à pas l'air bien grave...
+
+spatialite cellid_merged.db
+drop table android_metadata
 
 ***table = Points colonne = Geometry 	
 ***SELECT DISTINCT Srid(Geometry) FROM Points; -> -1 = unset
@@ -52,12 +62,7 @@ select ASTEXT(Geometry) from Points; # pour vérifier si Geometry bien remplie
 .dumpgeojson Points Geometry /root/vincent.json -> il faut que ça fonctionne!!!
 
 après http://umap.openstreetmap.fr/ en important du geojson
-	
-
-
-
-
-
+*************************************************SPATIALITE*************************************************
 
 **********************************************COMPIL SPATIALITE*********************************************
 *****libspatialite 4.4.0_RC1:
@@ -109,6 +114,7 @@ UPDATE Points SET Geometry=MakePoint(cast(long as REAL), cast(lat as REAL),  432
 
 * convertir epoch avec busybox date: date -d @1464159452 ##enlever les 3 lasts (ms)
 
+* convertir epoch dans sqlite SELECT datetime(1467125862513, 'unixepoch');
 
 
 
